@@ -1,0 +1,135 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "model": "azure/premium-coder",
+  "small_model": "azure/premium-mini",
+  "provider": {
+    "azure": {
+      "models": {
+        "premium-coder": {
+          "id": "gpt-5.3-codex",
+          "name": "Coder"
+        },
+        "premium-reasoning": {
+          "id": "gpt-5.4",
+          "name": "Reasoning"
+        },
+        "premium-mini": {
+          "id": "gpt-5.4-mini",
+          "name": "Mini"
+        }
+      }
+    }
+  },
+  "agent": {
+    "ask": {
+      "description": "Read-only Q&A agent for repository, features, and technical explanations",
+      "mode": "primary",
+      "model": "azure/premium-mini",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny"
+        },
+        "task": {
+          "*": "deny"
+        }
+      }
+    },
+    "build": {
+      "description": "Default implementation agent with full build authority",
+      "mode": "primary",
+      "model": "azure/premium-coder",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "planner": "allow",
+          "plan-reviewer": "allow",
+          "debugger": "allow",
+          "builder": "allow",
+          "qa": "allow",
+          "release": "allow"
+        }
+      }
+    },
+    "plan": {
+      "description": "Read-first planning and risk analysis agent",
+      "mode": "primary",
+      "model": "azure/premium-coder",
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "*": "ask",
+          "git status": "allow",
+          "git diff*": "allow",
+          "pnpm test*": "allow",
+          "pnpm lint": "allow",
+          "pnpm typecheck": "allow"
+        },
+        "task": {
+          "*": "deny",
+          "planner": "allow",
+          "plan-reviewer": "allow",
+          "debugger": "allow",
+          "qa": "allow",
+          "release": "allow"
+        }
+      }
+    }
+  },
+  "command": {
+    "ask-repo": {
+      "description": "Ask read-only questions about repo, features, and technical details",
+      "agent": "ask",
+      "template": "Answer the following repository question using available project context and files. Keep the response read-only and do not propose or perform code changes. Question: $ARGUMENTS"
+    },
+    "context-show": {
+      "description": "Summarize active context profile",
+      "agent": "plan",
+      "template": "Read contexts/active.md and summarize the active context, key conventions, risk checklist, and expected command matrix."
+    },
+    "context-use": {
+      "description": "Switch active context profile",
+      "agent": "build",
+      "template": "Switch context to: $ARGUMENTS\nUpdate contexts/active.md accordingly and keep the same format. Allowed profiles: general, backend, mobile, web, terraform-azure."
+    },
+    "plan-task": {
+      "description": "Generate implementation plan for any coding task",
+      "agent": "plan",
+      "template": "@planner Use contexts/active.md as the source of truth for context behavior. Plan task: $ARGUMENTS\nReturn scope, value, impacted files/packages, API or schema impact, test strategy, rollout risks, and phased tasks. Then hand the plan to @plan-reviewer for a final critical review and return the revised final plan with remaining risks."
+    },
+    "debug-task": {
+      "description": "Triage and root-cause any coding issue",
+      "agent": "plan",
+      "template": "@debugger Use contexts/active.md as the source of truth for context behavior. Debug task: $ARGUMENTS\nReturn probable root causes, repro steps, missing diagnostics, likely files, and fix options ranked by confidence."
+    },
+    "plan-feature": {
+      "description": "Legacy alias for plan-task",
+      "agent": "plan",
+      "template": "@planner Use contexts/active.md as the source of truth for context behavior. Plan feature: $ARGUMENTS\nReturn scope, value, impacted files/packages, API or schema impact, test strategy, rollout risks, and phased tasks. Then hand the plan to @plan-reviewer for a final critical review and return the revised final plan with remaining risks."
+    },
+    "review-plan": {
+      "description": "Final critical review of a draft plan",
+      "agent": "plan",
+      "template": "@plan-reviewer Use contexts/active.md as the source of truth for context behavior. Review this draft plan: $ARGUMENTS\nReturn readiness verdict, missing assumptions/dependencies, risk and validation gaps, and a corrected execution-ready plan."
+    },
+    "debug-bug": {
+      "description": "Legacy alias for debug-task",
+      "agent": "plan",
+      "template": "@debugger Use contexts/active.md as the source of truth for context behavior. Debug bug: $ARGUMENTS\nReturn probable root causes, repro steps, missing diagnostics, likely files, and fix options ranked by confidence."
+    },
+    "build-check": {
+      "description": "Run profile-aware health checks",
+      "agent": "build",
+      "template": "Read contexts/active.md and run the recommended check commands for the active profile. Summarize pass/fail status and actionable fixes."
+    },
+    "release-check": {
+      "description": "Validate profile-aware release readiness",
+      "agent": "plan",
+      "template": "@release Use contexts/active.md as the source of truth for release behavior. Run release readiness checks for the active profile and report blockers first."
+    }
+  },
+  "instructions": [
+    "contexts/*.md"
+  ]
+}
