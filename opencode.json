@@ -5,6 +5,9 @@
   "small_model": "azure/premium-mini",
   "provider": {
     "azure": {
+      "options": {
+        "resourceName": "{env:AZURE_RESOURCE_NAME}"
+      },
       "models": {
         "premium-coder": {
           "id": "gpt-5.3-codex",
