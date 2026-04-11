@@ -1,79 +1,74 @@
 # OpenCode Project Setup
 
-This repository configures a context-driven OpenCode workspace with specialized agents, reusable context profiles, and built-in slash commands for planning, debugging, validation, and release checks.
+This repository defines a transparent agent and subagent architecture in `opencode.json`.
 
-## Agents
+Context profiles and slash-command templates are intentionally removed from configuration for now.
 
-Primary agents are defined in `opencode.json`:
+## Agent Structure
 
-- `ask` - Read-only Q&A agent for repository and technical explanation tasks.
-- `build` - Default implementation agent with code edit/build authority.
-- `plan` - Read-first planning/risk analysis agent with guarded edit/bash permissions.
+Primary agents:
 
-The default agent is `build`.
+- `ask` - Information router that chooses between repository-grounded and external-source retrieval and returns source-tagged answers.
+- `plan` - Planning orchestrator that converts goals into phased, review-hardened execution plans.
+- `build` - Delivery orchestrator for implementation, QA validation, and release readiness checks.
+- `debug` - Debug orchestrator for hypothesis analysis, fix ranking, and concrete remediation output.
 
-## Subagents (Task Delegation)
+Subagents:
 
-The `build` and `plan` flows can delegate to domain-neutral subagents:
+- `repo-search` - Use for repository-grounded questions; return file-cited answers with confidence and no non-read actions.
+- `web-search` - Use for external docs/standards; return cited links and concise synthesis; ask for confirmation before `edit`, `bash`, or state-changing delegation.
+- `planner` - Build phased plans with dependencies, impact map, risks, and validation strategy.
+- `plan-reviewer` - Harden plans by identifying assumption gaps, risk severity, and missing verification.
+- `builder` - Implement approved changes and report what changed, why, and how it was verified.
+- `qa` - Validate changed behavior; report pass/fail checks, defects, repro steps, and quality risk.
+- `release` - Assess release readiness with blockers-first output for versioning, env, rollout, rollback, and monitoring.
+- `analysis` - Start debug by modeling symptoms, repro assumptions, and probable failure domains.
+- `ranking-fixes` - Prioritize remedy options by confidence, impact, effort, and risk with a recommended path.
+- `debugger` - Finalize root cause and provide implementation-ready fix steps with expected outcomes and regression checks.
 
-- `planner` - Creates phased implementation plans.
-- `plan-reviewer` - Critically reviews draft plans.
-- `debugger` - Performs issue triage and root-cause analysis.
-- `builder` - Supports implementation execution.
-- `qa` - Focuses on validation and quality checks.
-- `release` - Evaluates release readiness and rollback posture.
+## Delegation Order (Convention)
 
-## Context Profiles
+- `ask` typically routes: `repo-search` first for project-specific queries, then `web-search` if external evidence is needed.
+- `plan` typically routes: `planner` -> `plan-reviewer`.
+- `build` typically routes: `builder` -> `qa` -> `release`.
+- `debug` typically routes: `analysis` -> `ranking-fixes` -> `debugger`.
+- Routing order is a convention; hard enforcement remains permission-based.
 
-Context rules live in `contexts/` and control expectations for planning, checks, and release readiness.
+## Routing Diagram
 
-Available profiles:
+```mermaid
+flowchart TD
+  U[User] --> A[ask]
+  U --> P[plan]
+  U --> B[build]
+  U --> D[debug]
 
-- `general`
-- `backend`
-- `mobile`
-- `web`
-- `terraform-azure`
+  A --> RS[repo-search]
+  A --> WS[web-search]
 
-The active profile is tracked in `contexts/active.md`.
+  P --> PL[planner]
+  P --> PR[plan-reviewer]
 
-## How To Start
+  B --> BU[builder]
+  B --> QA[qa]
+  B --> R[release]
 
-1. Clone this repo and open it in your terminal.
-2. Ensure OpenCode CLI is installed and authenticated for your Azure provider setup.
-3. Set secrets before launch (for both global and project runs):
-   - copy `.secrets.example` to `.secrets`
-   - export variables from `.secrets` in your shell (or load them with your shell profile)
-4. Start OpenCode in this directory.
-5. Run `/context-show` to confirm the active context.
-6. (Optional) Switch context with `/context-use <profile>`.
+  D --> AN[analysis]
+  D --> RF[ranking-fixes]
+  D --> DB[debugger]
+```
 
-## How To Use
+## Policy Highlights
 
-Use the built-in commands from `opencode.json`:
-
-- `/ask-repo <question>` - Ask read-only repository questions.
-- `/context-show` - Show active context behavior.
-- `/context-use <general|backend|mobile|web|terraform-azure>` - Switch active context.
-- `/plan-task <task>` - Generate a context-aware implementation plan.
-- `/review-plan <draft plan>` - Critically review an implementation plan.
-- `/debug-task <issue>` - Triage and rank likely root causes.
-- `/build-check` - Run profile-aware lint/typecheck/test checks.
-- `/release-check` - Run profile-aware release readiness checks.
-
-Legacy aliases:
-
-- `/plan-feature <task>` - Alias of `/plan-task`.
-- `/debug-bug <issue>` - Alias of `/debug-task`.
+- `ask` can delegate only to `repo-search` and `web-search`.
+- `plan` can delegate only to `planner` and `plan-reviewer`.
+- `build` can delegate only to `builder`, `qa`, and `release`.
+- `debug` can delegate only to `analysis`, `ranking-fixes`, and `debugger`.
+- `web-search` is confirmation-gated for any non-read action.
+- `debugger` is fix-capable and can provide implementation-ready remediation steps.
 
 ## Repository Layout
 
-- `opencode.json` - Agent, model, permission, and slash-command configuration.
-- `contexts/` - Domain context profiles and active profile metadata.
-- `.secrets.example` - Template for local secret values.
-
-## Notes
-
-- Keep `contexts/active.md` as the single source of truth for current behavior.
-- Add new profiles under `contexts/` and update command templates only when behavior truly differs by domain.
-- Shared model/provider defaults live in `~/.config/opencode/opencode.jsonc`; repository-specific agent/command behavior stays in project `opencode.json`.
+- `opencode.json` - Models, provider settings, agents, subagents, and policy permissions.
+- `README.md` - Architecture overview and routing diagram.
+- `.secrets.example` - Example values for Azure settings.
