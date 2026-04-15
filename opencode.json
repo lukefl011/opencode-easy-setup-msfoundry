@@ -6,7 +6,7 @@
   "provider": {
     "azure": {
       "options": {
-        "resourceName": "{env:AZURE_RESOURCE_NAME}"
+        "resourceName": "ai-opencode-us2"
       },
       "models": {
         "premium-coder": {
@@ -35,7 +35,7 @@
         "task": {
           "*": "deny",
           "repo-search": "allow",
-          "web-search": "allow"
+          "web-search": "ask"
         }
       }
     },

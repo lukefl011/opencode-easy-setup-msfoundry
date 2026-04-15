@@ -71,4 +71,11 @@ flowchart TD
 
 - `opencode.json` - Models, provider settings, agents, subagents, and policy permissions.
 - `README.md` - Architecture overview and routing diagram.
-- `.secrets.example` - Example values for Azure settings.
+- `auth.example.json` - Rename to `auth.json` and place it in your local OpenCode config directory (see https://opencode.ai/docs/config#locations).
+
+## Local Auth Setup
+
+1. Copy `auth.example.json` to a new file named `auth.json`.
+2. Place `auth.json` in your local OpenCode config directory.
+3. For platform-specific config locations, see: https://opencode.ai/docs/config#locations
+4. Edit `auth.json` and replace `[YOUR_API_KEY]` with your real key.
