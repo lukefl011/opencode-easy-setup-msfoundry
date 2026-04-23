@@ -82,11 +82,13 @@ flowchart TD
 ## Quick Setup Script
 
 1. Open `setup.sh`.
-2. Run `./setup.sh`, choose scope (`project` or `global`), and enter values when prompted.
+2. Run `./setup.sh`, choose scope (`project`, `global`, or `both`), and enter values when prompted.
 3. The script installs OpenCode first if it is missing (tries `brew`, `npm`, `bun`, `pnpm`, then `yarn`).
-4. Optional non-interactive mode: `SCOPE=project API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh`.
+4. Optional non-interactive mode: `SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh`.
 5. The script creates `~/.local/share/opencode/auth.json` with your Azure API key.
 6. For `SCOPE=project`, it updates `./opencode.json` with `provider.azure.options.resourceName`.
 7. For `SCOPE=global`, it updates `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json`).
-8. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
-9. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.
+8. For `SCOPE=both`, it updates both files so project config does not override global config.
+9. The script overwrites Azure `provider.azure.options` in the selected scope(s), replacing old endpoint/baseURL-style settings with the chosen `resourceName`.
+10. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
+11. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.

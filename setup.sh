@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_CONFIG_FILE="$SCRIPT_DIR/opencode.json"
 GLOBAL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
+CONFIG_FILES=()
 
 ensure_opencode() {
   if command -v opencode >/dev/null 2>&1; then
@@ -46,7 +47,7 @@ USE_EXISTING_KEY="${USE_EXISTING_KEY:-}"
 ensure_opencode
 
 if [ -z "$SCOPE" ]; then
-  printf "Setup scope [project/global] (default: project): "
+  printf "Setup scope [project/global/both] (default: project): "
   read -r SCOPE
 fi
 
@@ -54,17 +55,24 @@ SCOPE="${SCOPE:-project}"
 
 case "$SCOPE" in
   project)
-    OPENCODE_CONFIG_FILE="$PROJECT_CONFIG_FILE"
+    CONFIG_FILES=("$PROJECT_CONFIG_FILE")
     ;;
   global)
     mkdir -p "$GLOBAL_CONFIG_DIR"
-    OPENCODE_CONFIG_FILE="$GLOBAL_CONFIG_FILE"
-    if [ ! -f "$OPENCODE_CONFIG_FILE" ]; then
-      printf '{}\n' > "$OPENCODE_CONFIG_FILE"
+    if [ ! -f "$GLOBAL_CONFIG_FILE" ]; then
+      printf '{}\n' > "$GLOBAL_CONFIG_FILE"
     fi
+    CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
+    ;;
+  both)
+    mkdir -p "$GLOBAL_CONFIG_DIR"
+    if [ ! -f "$GLOBAL_CONFIG_FILE" ]; then
+      printf '{}\n' > "$GLOBAL_CONFIG_FILE"
+    fi
+    CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
     ;;
   *)
-    printf "Error: SCOPE must be 'project' or 'global'.\n" >&2
+    printf "Error: SCOPE must be 'project', 'global', or 'both'.\n" >&2
     exit 1
     ;;
 esac
@@ -123,10 +131,12 @@ if [ -z "$API_KEY" ] || [ -z "$RESOURCE_NAME" ]; then
   exit 1
 fi
 
-if [ ! -f "$OPENCODE_CONFIG_FILE" ]; then
-  printf "Error: opencode.json not found at %s\n" "$OPENCODE_CONFIG_FILE" >&2
-  exit 1
-fi
+for cfg in "${CONFIG_FILES[@]}"; do
+  if [ ! -f "$cfg" ]; then
+    printf "Error: opencode.json not found at %s\n" "$cfg" >&2
+    exit 1
+  fi
+done
 
 mkdir -p "$AUTH_DIR"
 
@@ -151,7 +161,8 @@ data["azure"] = {"type": "api", "key": api_key}
 auth_file.write_text(json.dumps(data, indent=2) + "\n")
 PY
 
-RESOURCE_NAME="$RESOURCE_NAME" OPENCODE_CONFIG_FILE="$OPENCODE_CONFIG_FILE" python3 - <<'PY'
+for cfg in "${CONFIG_FILES[@]}"; do
+RESOURCE_NAME="$RESOURCE_NAME" OPENCODE_CONFIG_FILE="$cfg" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -169,10 +180,13 @@ if not isinstance(data, dict):
 
 provider = data.setdefault("provider", {})
 azure = provider.setdefault("azure", {})
-options = azure.setdefault("options", {})
-options["resourceName"] = resource_name
+azure["options"] = {"resourceName": resource_name}
 
 config_file.write_text(json.dumps(data, indent=2) + "\n")
 PY
+done
 
-printf "Saved Azure auth to %s and updated %s.\n" "$AUTH_FILE" "$OPENCODE_CONFIG_FILE"
+printf "Saved Azure auth to %s and updated Azure provider settings in:\n" "$AUTH_FILE"
+for cfg in "${CONFIG_FILES[@]}"; do
+  printf "- %s\n" "$cfg"
+done
