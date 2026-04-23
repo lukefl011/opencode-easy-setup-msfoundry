@@ -6,7 +6,7 @@
   "provider": {
     "azure": {
       "options": {
-        "resourceName": "ai-opencode-us2"
+        "resourceName": "{env:AZURE_RESOURCE_NAME}"
       },
       "models": {
         "premium-coder": {

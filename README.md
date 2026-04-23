@@ -71,11 +71,21 @@ flowchart TD
 
 - `opencode.json` - Models, provider settings, agents, subagents, and policy permissions.
 - `README.md` - Architecture overview and routing diagram.
-- `auth.example.json` - Rename to `auth.json` and place it in your local OpenCode config directory (see https://opencode.ai/docs/config#locations).
+- `auth.example.json` - Template for OpenCode credentials file (`~/.local/share/opencode/auth.json`).
 
 ## Local Auth Setup
 
-1. Copy `auth.example.json` to a new file named `auth.json`.
-2. Place `auth.json` in your local OpenCode config directory.
-3. For platform-specific config locations, see: https://opencode.ai/docs/config#locations
-4. Edit `auth.json` and replace `[YOUR_API_KEY]` with your real key.
+1. Recommended: run `/connect` in OpenCode to store credentials automatically.
+2. Manual option: copy `auth.example.json` to `~/.local/share/opencode/auth.json`.
+3. Edit `~/.local/share/opencode/auth.json` and replace `[YOUR_API_KEY]` with your real key.
+
+## Quick Setup Script
+
+1. Open `setup.sh`.
+2. Run `./setup.sh`, choose scope (`project` or `global`), and enter values when prompted.
+3. The script installs OpenCode first if it is missing (tries `brew`, `npm`, `bun`, `pnpm`, then `yarn`).
+4. Optional non-interactive mode: `SCOPE=project API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh`.
+5. The script creates `~/.local/share/opencode/auth.json` with your Azure API key.
+6. For `SCOPE=project`, it updates `./opencode.json` with `provider.azure.options.resourceName`.
+7. For `SCOPE=global`, it updates `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json`).
+8. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, you can run the script with just `RESOURCE_NAME` and it will reuse the saved key.
