@@ -88,4 +88,5 @@ flowchart TD
 5. The script creates `~/.local/share/opencode/auth.json` with your Azure API key.
 6. For `SCOPE=project`, it updates `./opencode.json` with `provider.azure.options.resourceName`.
 7. For `SCOPE=global`, it updates `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json`).
-8. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, you can run the script with just `RESOURCE_NAME` and it will reuse the saved key.
+8. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
+9. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.

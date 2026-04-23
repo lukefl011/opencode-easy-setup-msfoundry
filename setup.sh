@@ -41,6 +41,7 @@ ensure_opencode() {
 API_KEY="${API_KEY:-}"
 RESOURCE_NAME="${RESOURCE_NAME:-${SECRET_VALUE:-}}"
 SCOPE="${SCOPE:-}"
+USE_EXISTING_KEY="${USE_EXISTING_KEY:-}"
 
 ensure_opencode
 
@@ -68,8 +69,9 @@ case "$SCOPE" in
     ;;
 esac
 
-if [ -z "$API_KEY" ] && [ -f "$AUTH_FILE" ]; then
-  API_KEY="$(AUTH_FILE="$AUTH_FILE" python3 - <<'PY'
+EXISTING_API_KEY=""
+if [ -f "$AUTH_FILE" ]; then
+  EXISTING_API_KEY="$(AUTH_FILE="$AUTH_FILE" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -85,9 +87,30 @@ PY
 fi
 
 if [ -z "$API_KEY" ]; then
-  printf "Azure API key: "
-  read -r -s API_KEY
-  printf "\n"
+  if [ -n "$EXISTING_API_KEY" ]; then
+    if [ -z "$USE_EXISTING_KEY" ]; then
+      printf "Existing Azure API key found. Reuse it? [Y/n]: "
+      read -r USE_EXISTING_KEY
+    fi
+    case "${USE_EXISTING_KEY:-Y}" in
+      y|Y|yes|YES|"")
+        API_KEY="$EXISTING_API_KEY"
+        ;;
+      n|N|no|NO)
+        printf "Azure API key: "
+        read -r -s API_KEY
+        printf "\n"
+        ;;
+      *)
+        printf "Error: USE_EXISTING_KEY must be y/yes or n/no.\n" >&2
+        exit 1
+        ;;
+    esac
+  else
+    printf "Azure API key: "
+    read -r -s API_KEY
+    printf "\n"
+  fi
 fi
 
 if [ -z "$RESOURCE_NAME" ]; then
