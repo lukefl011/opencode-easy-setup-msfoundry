@@ -69,7 +69,8 @@ flowchart TD
 
 ## Repository Layout
 
-- `opencode.json` - Models, provider settings, agents, subagents, and policy permissions.
+- `opencode.json` - Models, provider settings, and runtime defaults.
+- `agents/` - Source-of-truth markdown agent definitions (one file per agent).
 - `README.md` - Architecture overview and routing diagram.
 - `auth.example.json` - Template for OpenCode credentials file (`~/.local/share/opencode/auth.json`).
 
@@ -92,3 +93,5 @@ flowchart TD
 9. The script overwrites Azure `provider.azure.options` in the selected scope(s), replacing old endpoint/baseURL-style settings with the chosen `resourceName`.
 10. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
 11. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.
+12. The script deploys agent markdown files from `./agents` to `.opencode/agents/` (project) and/or `~/.config/opencode/agents/` (global) based on `SCOPE`.
+13. Agent deployment is safe: only matching file names are overwritten; unrelated custom agent files are preserved.

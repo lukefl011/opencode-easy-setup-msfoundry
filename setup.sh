@@ -7,7 +7,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_CONFIG_FILE="$SCRIPT_DIR/opencode.json"
 GLOBAL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
+AGENTS_SOURCE_DIR="$SCRIPT_DIR/agents"
+PROJECT_AGENTS_DIR="$SCRIPT_DIR/.opencode/agents"
+GLOBAL_AGENTS_DIR="$GLOBAL_CONFIG_DIR/agents"
 CONFIG_FILES=()
+AGENT_TARGET_DIRS=()
 
 ensure_opencode() {
   if command -v opencode >/dev/null 2>&1; then
@@ -56,6 +60,7 @@ SCOPE="${SCOPE:-project}"
 case "$SCOPE" in
   project)
     CONFIG_FILES=("$PROJECT_CONFIG_FILE")
+    AGENT_TARGET_DIRS=("$PROJECT_AGENTS_DIR")
     ;;
   global)
     mkdir -p "$GLOBAL_CONFIG_DIR"
@@ -63,6 +68,7 @@ case "$SCOPE" in
       printf '{}\n' > "$GLOBAL_CONFIG_FILE"
     fi
     CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
+    AGENT_TARGET_DIRS=("$GLOBAL_AGENTS_DIR")
     ;;
   both)
     mkdir -p "$GLOBAL_CONFIG_DIR"
@@ -70,6 +76,7 @@ case "$SCOPE" in
       printf '{}\n' > "$GLOBAL_CONFIG_FILE"
     fi
     CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
+    AGENT_TARGET_DIRS=("$PROJECT_AGENTS_DIR" "$GLOBAL_AGENTS_DIR")
     ;;
   *)
     printf "Error: SCOPE must be 'project', 'global', or 'both'.\n" >&2
@@ -138,6 +145,17 @@ for cfg in "${CONFIG_FILES[@]}"; do
   fi
 done
 
+if [ ! -d "$AGENTS_SOURCE_DIR" ]; then
+  printf "Error: agents source folder not found at %s\n" "$AGENTS_SOURCE_DIR" >&2
+  exit 1
+fi
+
+AGENT_FILES=("$AGENTS_SOURCE_DIR"/*.md)
+if [ "${#AGENT_FILES[@]}" -eq 0 ] || [ ! -f "${AGENT_FILES[0]}" ]; then
+  printf "Error: no agent markdown files found in %s\n" "$AGENTS_SOURCE_DIR" >&2
+  exit 1
+fi
+
 mkdir -p "$AUTH_DIR"
 
 API_KEY="$API_KEY" AUTH_FILE="$AUTH_FILE" python3 - <<'PY'
@@ -186,7 +204,18 @@ config_file.write_text(json.dumps(data, indent=2) + "\n")
 PY
 done
 
+for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
+  mkdir -p "$target_dir"
+  for src in "${AGENT_FILES[@]}"; do
+    cp "$src" "$target_dir/$(basename "$src")"
+  done
+done
+
 printf "Saved Azure auth to %s and updated Azure provider settings in:\n" "$AUTH_FILE"
 for cfg in "${CONFIG_FILES[@]}"; do
   printf "- %s\n" "$cfg"
+done
+printf "Deployed %s agent files to:\n" "${#AGENT_FILES[@]}"
+for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
+  printf "- %s\n" "$target_dir"
 done
