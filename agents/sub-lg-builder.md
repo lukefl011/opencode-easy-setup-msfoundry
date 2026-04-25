@@ -2,8 +2,8 @@
 description: Use to implement approved changes; update plan-state markdown task progress and return what changed, why, and verification steps while keeping scope tight and avoiding unrelated refactors
 mode: subagent
 model: azure/premium-coder
-temperature: 0.15
-reasoningEffort: medium
+temperature: 0.3
+reasoningEffort: high
 permission:
   edit: allow
   bash: allow

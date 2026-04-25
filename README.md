@@ -10,7 +10,7 @@ Naming convention:
 
 - Primary agents use the `pri-` prefix.
 - Subagents use the `sub-<type>-` prefix.
-- Supported subagent types: `lg` (LangGraph pipeline subagents), `cr` (CrewAI persona subagents; reserved for future use).
+- Supported subagent types: `lg` (LangGraph pipeline subagents), `cr` (CrewAI persona subagents).
 
 Primary agents:
 
@@ -25,9 +25,11 @@ Subagents:
 - `sub-lg-web-search` - Use for external docs/standards; return cited links and concise synthesis; ask for confirmation before `edit`, `bash`, or state-changing delegation.
 - `sub-lg-task-lister` - Decompose approved goals into actionable tasks with stable IDs and done criteria.
 - `sub-lg-dependency-mapper` - Map task dependencies, critical path, and parallelizable execution groups.
+- `sub-lg-crew-manager` - Match planned tasks to available `sub-cr-*` specialists and return delegation recommendations with fallbacks.
 - `sub-lg-validation-planner` - Define task-level validation gates, evidence expectations, and regression checks.
 - `sub-lg-plan-state-writer` - Persist execution-ready plans into markdown state files used as `pri-build` execution monitors.
 - `sub-lg-plan-reviewer` - Harden plans by identifying assumption gaps, risk severity, and missing verification.
+- `sub-cr-terraform-engineer` - CrewAI persona specialist for Terraform planning, risk controls, and IaC validation expectations.
 - `sub-lg-builder` - Implement approved changes and report what changed, why, and how it was verified.
 - `sub-lg-qa` - Validate changed behavior; report pass/fail checks, defects, repro steps, and quality risk.
 - `sub-lg-release` - Assess release readiness with blockers-first output for versioning, env, rollout, rollback, and monitoring.
@@ -38,7 +40,7 @@ Subagents:
 ## Delegation Order (Convention)
 
 - `pri-ask` typically routes: `sub-lg-repo-search` first for project-specific queries, then `sub-lg-web-search` if external evidence is needed.
-- `pri-plan` typically routes: `sub-lg-task-lister` -> `sub-lg-dependency-mapper` -> `sub-lg-validation-planner` -> `sub-lg-plan-state-writer` -> `sub-lg-plan-reviewer` -> optional `pri-build` handoff on explicit user approval.
+- `pri-plan` typically routes: `sub-lg-task-lister` -> `sub-lg-dependency-mapper` -> `sub-lg-crew-manager` -> `sub-lg-validation-planner` -> `sub-lg-plan-state-writer` -> `sub-lg-plan-reviewer` -> optional `pri-build` handoff on explicit user approval.
 - `pri-build` typically routes: `sub-lg-builder` -> `sub-lg-qa` -> `sub-lg-release`.
 - `pri-debug` typically routes: `sub-lg-analysis` -> `sub-lg-ranking-fixes` -> `sub-lg-debugger`.
 - Routing order is a convention; hard enforcement remains permission-based.
@@ -57,10 +59,13 @@ flowchart TD
 
   P --> TL[sub-lg-task-lister]
   P --> DM[sub-lg-dependency-mapper]
+  P --> CM[sub-lg-crew-manager]
   P --> VP[sub-lg-validation-planner]
   P --> PSW[sub-lg-plan-state-writer]
   P --> PR[sub-lg-plan-reviewer]
   P --> B
+
+  CM --> CRTF[sub-cr-terraform-engineer]
 
   B --> BU[sub-lg-builder]
   B --> QA[sub-lg-qa]
@@ -74,7 +79,8 @@ flowchart TD
 ## Policy Highlights
 
 - `pri-ask` can delegate only to `sub-lg-repo-search` and `sub-lg-web-search`.
-- `pri-plan` can delegate to `sub-lg-task-lister`, `sub-lg-dependency-mapper`, `sub-lg-validation-planner`, `sub-lg-plan-state-writer`, `sub-lg-plan-reviewer`, and `pri-build`.
+- `pri-plan` can delegate to `sub-lg-task-lister`, `sub-lg-dependency-mapper`, `sub-lg-crew-manager`, `sub-lg-validation-planner`, `sub-lg-plan-state-writer`, `sub-lg-plan-reviewer`, and `pri-build`.
+- `sub-lg-crew-manager` uses explicit allowlist-based delegation to `sub-cr-*` specialists.
 - `pri-build` can delegate only to `sub-lg-builder`, `sub-lg-qa`, and `sub-lg-release`.
 - `pri-debug` can delegate only to `sub-lg-analysis`, `sub-lg-ranking-fixes`, and `sub-lg-debugger`.
 - `sub-lg-web-search` is confirmation-gated for any non-read action.

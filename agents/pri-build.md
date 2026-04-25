@@ -2,8 +2,8 @@
 description: Use as delivery orchestrator; consume plan-state markdown, delegate implementation to sub-lg-builder, quality validation to sub-lg-qa, and shipment checks to sub-lg-release, then return changed scope and verification status
 mode: primary
 model: azure/premium-coder
-temperature: 0.15
-reasoningEffort: medium
+temperature: 0.3
+reasoningEffort: high
 permission:
   edit: allow
   bash: allow
