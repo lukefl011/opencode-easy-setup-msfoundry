@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "build",
+  "default_agent": "pri-build",
   "model": "azure/premium-coder",
   "small_model": "azure/premium-mini",
   "provider": {

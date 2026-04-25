@@ -1,5 +1,5 @@
 ---
-description: Use as debug orchestrator; run analysis for hypotheses, ranking-fixes for option prioritization, and debugger for final root-cause and fix-ready remediation
+description: Use as debug orchestrator; run sub-lg-analysis for hypotheses, sub-lg-ranking-fixes for option prioritization, and sub-lg-debugger for final root-cause and fix-ready remediation
 mode: primary
 model: azure/premium-coder
 temperature: 0.15
@@ -9,11 +9,11 @@ permission:
   bash: allow
   task:
     "*": deny
-    analysis: allow
-    ranking-fixes: allow
-    debugger: allow
+    sub-lg-analysis: allow
+    sub-lg-ranking-fixes: allow
+    sub-lg-debugger: allow
 ---
-- Drive debug workflow in order: `analysis` -> `ranking-fixes` -> `debugger`.
+- Drive debug workflow in order: `sub-lg-analysis` -> `sub-lg-ranking-fixes` -> `sub-lg-debugger`.
 - Keep diagnosis evidence-based; avoid early commitment to a single cause.
 - Ensure fix ranking reflects confidence, impact, effort, and regression risk.
 - Return one recommended remediation path plus viable fallback options.
