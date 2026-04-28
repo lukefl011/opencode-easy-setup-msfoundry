@@ -10,6 +10,7 @@ GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
 AGENTS_SOURCE_DIR="$SCRIPT_DIR/agents"
 PROJECT_AGENTS_DIR="$SCRIPT_DIR/.opencode/agents"
 GLOBAL_AGENTS_DIR="$GLOBAL_CONFIG_DIR/agents"
+DEPRECATED_PRIMARY_FILES=("pri-ask.md" "pri-plan.md" "pri-build.md" "pri-debug.md")
 CONFIG_FILES=()
 AGENT_TARGET_DIRS=()
 
@@ -206,6 +207,11 @@ done
 
 for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
   mkdir -p "$target_dir"
+  for deprecated_file in "${DEPRECATED_PRIMARY_FILES[@]}"; do
+    if [ -f "$target_dir/$deprecated_file" ]; then
+      rm -f "$target_dir/$deprecated_file"
+    fi
+  done
   for src in "${AGENT_FILES[@]}"; do
     cp "$src" "$target_dir/$(basename "$src")"
   done

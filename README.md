@@ -8,26 +8,27 @@ Context profiles and slash-command templates are intentionally removed from conf
 
 Naming convention:
 
-- Primary agents use the `pri-` prefix.
+- Primary agents use unprefixed canonical names: `ask`, `plan`, `build`, `debug`.
 - Subagents use the `sub-<type>-` prefix.
 - Supported subagent types: `lg` (LangGraph pipeline subagents), `cr` (CrewAI persona subagents).
 
 Primary agents:
 
-- `pri-ask` - Information router that chooses between repository-grounded and external-source retrieval and returns source-tagged answers.
-- `pri-plan` - Planning orchestrator that decomposes tasks, maps dependencies, defines validation, writes plan-state markdown, and can hand off to `pri-build` on user approval.
-- `pri-build` - Delivery orchestrator for implementation, QA validation, and release readiness checks.
-- `pri-debug` - Debug orchestrator for hypothesis analysis, fix ranking, and concrete remediation output.
+- `ask` - Information router that chooses between repository-grounded and external-source retrieval and returns source-tagged answers.
+- `plan` - Planning orchestrator that runs fast task reconnaissance, asks only essential clarification questions, and can harden higher-risk plans before optional handoff to `build`.
+- `build` - Delivery orchestrator for implementation, QA validation, and release readiness checks.
+- `debug` - Debug orchestrator for hypothesis analysis, fix ranking, and concrete remediation output.
 
 Subagents:
 
 - `sub-lg-repo-search` - Use for repository-grounded questions; return file-cited answers with confidence and no non-read actions.
 - `sub-lg-web-search` - Use for external docs/standards; return cited links and concise synthesis; ask for confirmation before `edit`, `bash`, or state-changing delegation.
+- `sub-lg-task-recon` - Gather implementation-planning inputs quickly by extracting knowns, unknowns, assumptions, and targeted clarification questions.
 - `sub-lg-task-lister` - Decompose approved goals into actionable tasks with stable IDs and done criteria.
 - `sub-lg-dependency-mapper` - Map task dependencies, critical path, and parallelizable execution groups.
 - `sub-lg-crew-manager` - Match planned tasks to available `sub-cr-*` specialists and return delegation recommendations with fallbacks.
 - `sub-lg-validation-planner` - Define task-level validation gates, evidence expectations, and regression checks.
-- `sub-lg-plan-state-writer` - Persist execution-ready plans into markdown state files used as `pri-build` execution monitors.
+- `sub-lg-plan-state-writer` - Persist execution-ready plans into markdown state files used as `build` execution monitors.
 - `sub-lg-plan-reviewer` - Harden plans by identifying assumption gaps, risk severity, and missing verification.
 - `sub-cr-terraform-engineer` - CrewAI persona specialist for Terraform planning, risk controls, and IaC validation expectations.
 - `sub-lg-builder` - Implement approved changes and report what changed, why, and how it was verified.
@@ -39,33 +40,27 @@ Subagents:
 
 ## Delegation Order (Convention)
 
-- `pri-ask` typically routes: `sub-lg-repo-search` first for project-specific queries, then `sub-lg-web-search` if external evidence is needed.
-- `pri-plan` typically routes: `sub-lg-task-lister` -> `sub-lg-dependency-mapper` -> `sub-lg-crew-manager` -> `sub-lg-validation-planner` -> `sub-lg-plan-state-writer` -> `sub-lg-plan-reviewer` -> optional `pri-build` handoff on explicit user approval.
-- `pri-build` typically routes: `sub-lg-builder` -> `sub-lg-qa` -> `sub-lg-release`.
-- `pri-debug` typically routes: `sub-lg-analysis` -> `sub-lg-ranking-fixes` -> `sub-lg-debugger`.
+- `ask` typically routes: `sub-lg-repo-search` first for project-specific queries, then `sub-lg-web-search` if external evidence is needed.
+- `plan` typically routes: `sub-lg-task-recon` -> optional `sub-lg-plan-reviewer` -> optional `build` handoff on explicit user approval.
+- `build` typically routes: `sub-lg-builder` -> `sub-lg-qa` -> `sub-lg-release`.
+- `debug` typically routes: `sub-lg-analysis` -> `sub-lg-ranking-fixes` -> `sub-lg-debugger`.
 - Routing order is a convention; hard enforcement remains permission-based.
 
 ## Routing Diagram
 
 ```mermaid
 flowchart TD
-  U[User] --> A[pri-ask]
-  U --> P[pri-plan]
-  U --> B[pri-build]
-  U --> D[pri-debug]
+  U[User] --> A[ask]
+  U --> P[plan]
+  U --> B[build]
+  U --> D[debug]
 
   A --> RS[sub-lg-repo-search]
   A --> WS[sub-lg-web-search]
 
-  P --> TL[sub-lg-task-lister]
-  P --> DM[sub-lg-dependency-mapper]
-  P --> CM[sub-lg-crew-manager]
-  P --> VP[sub-lg-validation-planner]
-  P --> PSW[sub-lg-plan-state-writer]
+  P --> TR[sub-lg-task-recon]
   P --> PR[sub-lg-plan-reviewer]
   P --> B
-
-  CM --> CRTF[sub-cr-terraform-engineer]
 
   B --> BU[sub-lg-builder]
   B --> QA[sub-lg-qa]
@@ -78,11 +73,11 @@ flowchart TD
 
 ## Policy Highlights
 
-- `pri-ask` can delegate only to `sub-lg-repo-search` and `sub-lg-web-search`.
-- `pri-plan` can delegate to `sub-lg-task-lister`, `sub-lg-dependency-mapper`, `sub-lg-crew-manager`, `sub-lg-validation-planner`, `sub-lg-plan-state-writer`, `sub-lg-plan-reviewer`, and `pri-build`.
+- `ask` can delegate only to `sub-lg-repo-search` and `sub-lg-web-search`.
+- `plan` can delegate to `sub-lg-task-recon`, `sub-lg-plan-reviewer`, and `build`.
 - `sub-lg-crew-manager` uses explicit allowlist-based delegation to `sub-cr-*` specialists.
-- `pri-build` can delegate only to `sub-lg-builder`, `sub-lg-qa`, and `sub-lg-release`.
-- `pri-debug` can delegate only to `sub-lg-analysis`, `sub-lg-ranking-fixes`, and `sub-lg-debugger`.
+- `build` can delegate only to `sub-lg-builder`, `sub-lg-qa`, and `sub-lg-release`.
+- `debug` can delegate only to `sub-lg-analysis`, `sub-lg-ranking-fixes`, and `sub-lg-debugger`.
 - `sub-lg-web-search` is confirmation-gated for any non-read action.
 - `sub-lg-debugger` is fix-capable and can provide implementation-ready remediation steps.
 
@@ -114,3 +109,4 @@ flowchart TD
 11. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.
 12. The script deploys agent markdown files from `./agents` to `.opencode/agents/` (project) and/or `~/.config/opencode/agents/` (global) based on `SCOPE`.
 13. Agent deployment is safe: only matching file names are overwritten; unrelated custom agent files are preserved.
+14. During deployment, deprecated primary files (`pri-ask.md`, `pri-plan.md`, `pri-build.md`, `pri-debug.md`) are removed from target agent directories so menu surfaces do not retain dual old/new primary entries.
