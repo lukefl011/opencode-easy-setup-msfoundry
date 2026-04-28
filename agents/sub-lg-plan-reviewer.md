@@ -1,7 +1,7 @@
 ---
 description: Use to harden draft plans; return missing assumptions, risk severity, validation gaps, and a corrected execution-ready plan without file changes
 mode: subagent
-model: azure/premium-coder
+model: azure/premium-reasoning"
 temperature: 0.1
 reasoningEffort: high
 permission:

@@ -219,9 +219,9 @@ done
 
 printf "Saved Azure auth to %s and updated Azure provider settings in:\n" "$AUTH_FILE"
 for cfg in "${CONFIG_FILES[@]}"; do
-  printf "- %s\n" "$cfg"
+  printf -- "- %s\n" "$cfg"
 done
 printf "Deployed %s agent files to:\n" "${#AGENT_FILES[@]}"
 for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
-  printf "- %s\n" "$target_dir"
+  printf -- "- %s\n" "$target_dir"
 done
