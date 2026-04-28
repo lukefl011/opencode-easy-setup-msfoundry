@@ -65,17 +65,13 @@ case "$SCOPE" in
     ;;
   global)
     mkdir -p "$GLOBAL_CONFIG_DIR"
-    if [ ! -f "$GLOBAL_CONFIG_FILE" ]; then
-      printf '{}\n' > "$GLOBAL_CONFIG_FILE"
-    fi
+    cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
     AGENT_TARGET_DIRS=("$GLOBAL_AGENTS_DIR")
     ;;
   both)
     mkdir -p "$GLOBAL_CONFIG_DIR"
-    if [ ! -f "$GLOBAL_CONFIG_FILE" ]; then
-      printf '{}\n' > "$GLOBAL_CONFIG_FILE"
-    fi
+    cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
     AGENT_TARGET_DIRS=("$PROJECT_AGENTS_DIR" "$GLOBAL_AGENTS_DIR")
     ;;
