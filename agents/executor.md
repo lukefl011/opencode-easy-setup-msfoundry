@@ -1,17 +1,22 @@
 ---
-description: Compatibility alias for legacy executor routing; delegate delivery requests to canonical build agent
-mode: subagent
-model: azure/premium-mini
-temperature: 0
-reasoningEffort: low
+description: Use as delivery orchestrator; consume plan-state markdown, delegate implementation to sub-lg-builder, quality validation to sub-lg-qa then return changed scope and verification status
+mode: primary
+model: azure/premium-coder
+temperature: 0.3
+reasoningEffort: medium
 permission:
-  edit: deny
-  bash: deny
+  edit: allow
+  bash: allow
   task:
     "*": deny
-    build: allow
+    sub-lg-builder: allow
+    sub-lg-qa: allow
+    sub-lg-crew-manage: allow
 ---
-- Treat this agent as a deprecated compatibility shim.
-- Delegate the full delivery request to `build` without adding or removing steps.
-- Preserve approved scope, constraints, and requested report format.
-- If delegation is unavailable, direct the caller to use `build` explicitly.
+- Confirm approved scope, constraints, and non-goals before execution.
+- Treat provided plan-state markdown as the source of truth for active execution tasks.
+- Delegate in order: `sub-lg-builder` -> `sub-lg-qa` -> `sub-lg-release` unless the user explicitly changes sequence.
+- Invoke `sub-lg-crew-manager` when any filed knowledge is required.
+- Require concrete verification evidence and report each check as `pass`, `fail`, or `not run`.
+- Update plan-state task statuses and append concise execution-log entries.
+- Return blockers first, then warnings, then completed scope.
