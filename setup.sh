@@ -48,6 +48,11 @@ API_KEY="${API_KEY:-}"
 RESOURCE_NAME="${RESOURCE_NAME:-${SECRET_VALUE:-}}"
 SCOPE="${SCOPE:-}"
 USE_EXISTING_KEY="${USE_EXISTING_KEY:-}"
+USE_EXISTING_RESOURCE_NAME="${USE_EXISTING_RESOURCE_NAME:-}"
+COPY_REPO_AGENTS_TO_GLOBAL="${COPY_REPO_AGENTS_TO_GLOBAL:-}"
+CLEAN_GLOBAL_AGENTS="${CLEAN_GLOBAL_AGENTS:-}"
+DEPLOY_PROJECT_AGENTS=0
+DEPLOY_GLOBAL_AGENTS=0
 
 ensure_opencode
 
@@ -61,25 +66,53 @@ SCOPE="${SCOPE:-project}"
 case "$SCOPE" in
   project)
     CONFIG_FILES=("$PROJECT_CONFIG_FILE")
-    AGENT_TARGET_DIRS=("$PROJECT_AGENTS_DIR")
+    DEPLOY_PROJECT_AGENTS=1
     ;;
   global)
     mkdir -p "$GLOBAL_CONFIG_DIR"
     cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
-    AGENT_TARGET_DIRS=("$GLOBAL_AGENTS_DIR")
+    DEPLOY_GLOBAL_AGENTS=1
     ;;
   both)
     mkdir -p "$GLOBAL_CONFIG_DIR"
     cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
-    AGENT_TARGET_DIRS=("$PROJECT_AGENTS_DIR" "$GLOBAL_AGENTS_DIR")
+    DEPLOY_PROJECT_AGENTS=1
+    DEPLOY_GLOBAL_AGENTS=1
     ;;
   *)
     printf "Error: SCOPE must be 'project', 'global', or 'both'.\n" >&2
     exit 1
     ;;
 esac
+
+if [ "$DEPLOY_GLOBAL_AGENTS" -eq 1 ]; then
+  if [ -z "$COPY_REPO_AGENTS_TO_GLOBAL" ]; then
+    printf "Copy repository agents to global location? [Y/n]: "
+    read -r COPY_REPO_AGENTS_TO_GLOBAL
+  fi
+  case "${COPY_REPO_AGENTS_TO_GLOBAL:-Y}" in
+    y|Y|yes|YES|"")
+      DEPLOY_GLOBAL_AGENTS=1
+      ;;
+    n|N|no|NO)
+      DEPLOY_GLOBAL_AGENTS=0
+      ;;
+    *)
+      printf "Error: COPY_REPO_AGENTS_TO_GLOBAL must be y/yes or n/no.\n" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+AGENT_TARGET_DIRS=()
+if [ "$DEPLOY_PROJECT_AGENTS" -eq 1 ]; then
+  AGENT_TARGET_DIRS+=("$PROJECT_AGENTS_DIR")
+fi
+if [ "$DEPLOY_GLOBAL_AGENTS" -eq 1 ]; then
+  AGENT_TARGET_DIRS+=("$GLOBAL_AGENTS_DIR")
+fi
 
 EXISTING_API_KEY=""
 if [ -f "$AUTH_FILE" ]; then
@@ -126,8 +159,49 @@ if [ -z "$API_KEY" ]; then
 fi
 
 if [ -z "$RESOURCE_NAME" ]; then
-  printf "AZURE_RESOURCE_NAME: "
-  read -r RESOURCE_NAME
+  EXISTING_RESOURCE_NAME=""
+  for cfg in "${CONFIG_FILES[@]}"; do
+    CURRENT_RESOURCE_NAME="$(OPENCODE_CONFIG_FILE="$cfg" python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+config_file = Path(os.environ["OPENCODE_CONFIG_FILE"])
+try:
+    data = json.loads(config_file.read_text())
+except Exception:
+    data = {}
+print(data.get("provider", {}).get("azure", {}).get("options", {}).get("resourceName", ""))
+PY
+)"
+    if [ -n "$CURRENT_RESOURCE_NAME" ]; then
+      EXISTING_RESOURCE_NAME="$CURRENT_RESOURCE_NAME"
+      break
+    fi
+  done
+
+  if [ -n "$EXISTING_RESOURCE_NAME" ]; then
+    if [ -z "$USE_EXISTING_RESOURCE_NAME" ]; then
+      printf "Existing AZURE_RESOURCE_NAME found (%s). Reuse it? [Y/n]: " "$EXISTING_RESOURCE_NAME"
+      read -r USE_EXISTING_RESOURCE_NAME
+    fi
+    case "${USE_EXISTING_RESOURCE_NAME:-Y}" in
+      y|Y|yes|YES|"")
+        RESOURCE_NAME="$EXISTING_RESOURCE_NAME"
+        ;;
+      n|N|no|NO)
+        printf "AZURE_RESOURCE_NAME: "
+        read -r RESOURCE_NAME
+        ;;
+      *)
+        printf "Error: USE_EXISTING_RESOURCE_NAME must be y/yes or n/no.\n" >&2
+        exit 1
+        ;;
+    esac
+  else
+    printf "AZURE_RESOURCE_NAME: "
+    read -r RESOURCE_NAME
+  fi
 fi
 
 if [ -z "$API_KEY" ] || [ -z "$RESOURCE_NAME" ]; then
@@ -142,15 +216,18 @@ for cfg in "${CONFIG_FILES[@]}"; do
   fi
 done
 
-if [ ! -d "$AGENTS_SOURCE_DIR" ]; then
-  printf "Error: agents source folder not found at %s\n" "$AGENTS_SOURCE_DIR" >&2
-  exit 1
-fi
+AGENT_FILES=()
+if [ "${#AGENT_TARGET_DIRS[@]}" -gt 0 ]; then
+  if [ ! -d "$AGENTS_SOURCE_DIR" ]; then
+    printf "Error: agents source folder not found at %s\n" "$AGENTS_SOURCE_DIR" >&2
+    exit 1
+  fi
 
-AGENT_FILES=("$AGENTS_SOURCE_DIR"/*.md)
-if [ "${#AGENT_FILES[@]}" -eq 0 ] || [ ! -f "${AGENT_FILES[0]}" ]; then
-  printf "Error: no agent markdown files found in %s\n" "$AGENTS_SOURCE_DIR" >&2
-  exit 1
+  AGENT_FILES=("$AGENTS_SOURCE_DIR"/*.md)
+  if [ "${#AGENT_FILES[@]}" -eq 0 ] || [ ! -f "${AGENT_FILES[0]}" ]; then
+    printf "Error: no agent markdown files found in %s\n" "$AGENTS_SOURCE_DIR" >&2
+    exit 1
+  fi
 fi
 
 mkdir -p "$AUTH_DIR"
@@ -202,6 +279,31 @@ PY
 done
 
 for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
+  if [ "$target_dir" = "$GLOBAL_AGENTS_DIR" ]; then
+    if [ -z "$CLEAN_GLOBAL_AGENTS" ]; then
+      printf "Clean existing global agent markdown files before deployment? [y/N]: "
+      read -r CLEAN_GLOBAL_AGENTS
+    fi
+    case "${CLEAN_GLOBAL_AGENTS:-N}" in
+      y|Y|yes|YES)
+        if [ -d "$target_dir" ]; then
+          shopt -s nullglob
+          GLOBAL_AGENT_FILES=("$target_dir"/*.md)
+          if [ "${#GLOBAL_AGENT_FILES[@]}" -gt 0 ]; then
+            rm -f "${GLOBAL_AGENT_FILES[@]}"
+          fi
+          shopt -u nullglob
+        fi
+        ;;
+      n|N|no|NO|"")
+        ;;
+      *)
+        printf "Error: CLEAN_GLOBAL_AGENTS must be y/yes or n/no.\n" >&2
+        exit 1
+        ;;
+    esac
+  fi
+
   mkdir -p "$target_dir"
   for deprecated_file in "${DEPRECATED_PRIMARY_FILES[@]}"; do
     if [ -f "$target_dir/$deprecated_file" ]; then
@@ -217,7 +319,11 @@ printf "Saved Azure auth to %s and updated Azure provider settings in:\n" "$AUTH
 for cfg in "${CONFIG_FILES[@]}"; do
   printf -- "- %s\n" "$cfg"
 done
-printf "Deployed %s agent files to:\n" "${#AGENT_FILES[@]}"
-for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
-  printf -- "- %s\n" "$target_dir"
-done
+if [ "${#AGENT_TARGET_DIRS[@]}" -gt 0 ]; then
+  printf "Deployed %s agent files to:\n" "${#AGENT_FILES[@]}"
+  for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
+    printf -- "- %s\n" "$target_dir"
+  done
+else
+  printf "Skipped agent deployment. Applied auth and Azure provider settings only.\n"
+fi

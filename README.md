@@ -104,9 +104,12 @@ flowchart TD
 6. For `SCOPE=project`, it updates `./opencode.json` with `provider.azure.options.resourceName`.
 7. For `SCOPE=global`, it updates `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json`).
 8. For `SCOPE=both`, it updates both files so project config does not override global config.
-9. The script overwrites Azure `provider.azure.options` in the selected scope(s), replacing old endpoint/baseURL-style settings with the chosen `resourceName`.
-10. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
-11. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.
-12. The script deploys agent markdown files from `./agents` to `.opencode/agents/` (project) and/or `~/.config/opencode/agents/` (global) based on `SCOPE`.
-13. Agent deployment is safe: only matching file names are overwritten; unrelated custom agent files are preserved.
-14. During deployment, deprecated primary files (`pri-ask.md`, `pri-plan.md`, `pri-build.md`, `pri-debug.md`) are removed from target agent directories so menu surfaces do not retain dual old/new primary entries.
+9. If `provider.azure.options.resourceName` is already set in the selected config, the script asks whether to reuse it.
+10. The script overwrites Azure `provider.azure.options` in the selected scope(s), replacing old endpoint/baseURL-style settings with the chosen `resourceName`.
+11. If an Azure API key already exists in `~/.local/share/opencode/auth.json`, the script asks whether to reuse it or enter a new one.
+12. For non-interactive runs with an existing key, set `USE_EXISTING_KEY=yes` to reuse or `USE_EXISTING_KEY=no` to force entering `API_KEY`.
+13. For scopes that include global setup, the script asks whether to copy repository agents into the global agents directory.
+14. If global agent deployment is selected, the script can optionally clean existing global `*.md` agent files before copying.
+15. In non-interactive mode, control these prompts with `USE_EXISTING_RESOURCE_NAME=yes|no`, `COPY_REPO_AGENTS_TO_GLOBAL=yes|no`, and `CLEAN_GLOBAL_AGENTS=yes|no`.
+16. If global agent copy is declined, the script still configures auth and Azure resource name settings.
+17. During deployment, deprecated primary files (`pri-ask.md`, `pri-plan.md`, `pri-build.md`, `pri-debug.md`) are removed from target agent directories so menu surfaces do not retain dual old/new primary entries.
