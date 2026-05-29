@@ -1,6 +1,6 @@
 # OpenCode Initial Setup
 
-This repository is an initial setup kit for OpenCode on Azure. It provides a ready `opencode.json`, curated agent definitions, and a `setup.sh` script that installs/configures OpenCode in one unified flow (no basic/advanced profile split).
+This repository provides a starter setup for OpenCode with MS Foundry, including a preconfigured opencode.json, curated agent definitions, and a setup.sh script to install and configure OpenCode on Linux and macOS.
 
 ## What this setup does
 
