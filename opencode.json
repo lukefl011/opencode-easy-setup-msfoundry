@@ -1,23 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "build",
-  "model": "azure/premium-coder",
-  "small_model": "azure/premium-mini",
+  "model": "azure/coder",
+  "small_model": "azure/mini",
   "provider": {
     "azure": {
       "options": {
         "resourceName": "{env:AZURE_RESOURCE_NAME}"
       },
       "models": {
-        "premium-coder": {
+        "coder": {
           "id": "gpt-5.3-codex",
           "name": "Coder"
         },
-        "premium-reasoning": {
+        "reasoning": {
           "id": "gpt-5.4",
           "name": "Reasoning"
         },
-        "premium-mini": {
+        "mini": {
           "id": "gpt-5.4-mini",
           "name": "Mini"
         }

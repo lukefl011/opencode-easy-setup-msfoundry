@@ -10,7 +10,27 @@ GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
 AGENTS_SOURCE_DIR="$SCRIPT_DIR/agents"
 PROJECT_AGENTS_DIR="$SCRIPT_DIR/.opencode/agents"
 GLOBAL_AGENTS_DIR="$GLOBAL_CONFIG_DIR/agents"
-DEPRECATED_PRIMARY_FILES=("pri-ask.md" "pri-plan.md" "pri-build.md" "pri-debug.md")
+LEGACY_AGENT_FILES=(
+  "pri-ask.md"
+  "pri-plan.md"
+  "pri-build.md"
+  "pri-debug.md"
+  "sub-lg-repo-search.md"
+  "sub-lg-web-search.md"
+  "sub-lg-task-recon.md"
+  "sub-lg-task-lister.md"
+  "sub-lg-dependency-mapper.md"
+  "sub-lg-crew-manager.md"
+  "sub-lg-validation-planner.md"
+  "sub-lg-plan-state-writer.md"
+  "sub-lg-plan-reviewer.md"
+  "sub-lg-builder.md"
+  "sub-lg-qa.md"
+  "sub-lg-release.md"
+  "sub-lg-analysis.md"
+  "sub-lg-ranking-fixes.md"
+  "sub-lg-debugger.md"
+)
 CONFIG_FILES=()
 AGENT_TARGET_DIRS=()
 
@@ -305,9 +325,9 @@ for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
   fi
 
   mkdir -p "$target_dir"
-  for deprecated_file in "${DEPRECATED_PRIMARY_FILES[@]}"; do
-    if [ -f "$target_dir/$deprecated_file" ]; then
-      rm -f "$target_dir/$deprecated_file"
+  for legacy_file in "${LEGACY_AGENT_FILES[@]}"; do
+    if [ -f "$target_dir/$legacy_file" ]; then
+      rm -f "$target_dir/$legacy_file"
     fi
   done
   for src in "${AGENT_FILES[@]}"; do

@@ -1,9 +1,9 @@
 ---
 description: CrewAI persona for Terraform planning expertise; define safe infrastructure-change plans, risk controls, and validation expectations without applying changes
 mode: subagent
-model: azure/premium-coder
+model: azure/coder
 temperature: 0.1
-reasoningEffort: high
+reasoningEffort: medium
 permission:
   edit: deny
   bash: deny

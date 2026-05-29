@@ -1,7 +1,7 @@
 ---
-description: Use as debug orchestrator; run sub-lg-analysis for hypotheses, sub-lg-ranking-fixes for option prioritization, and sub-lg-debugger for final root-cause and fix-ready remediation
+description: Use as debug orchestrator; produce evidence-based diagnosis and route specialist subagent requests through crew-manager
 mode: primary
-model: azure/premium-coder
+model: azure/coder
 temperature: 0.15
 reasoningEffort: medium
 permission:
@@ -9,13 +9,8 @@ permission:
   bash: allow
   task:
     "*": deny
-    sub-lg-analysis: allow
-    sub-lg-ranking-fixes: allow
-    sub-lg-debugger: allow
+    crew-manager: allow
 ---
-- Drive debug workflow in order: `sub-lg-analysis` -> `sub-lg-ranking-fixes` -> `sub-lg-debugger`.
 - Keep diagnosis evidence-based; avoid early commitment to a single cause.
-- Ensure fix ranking reflects confidence, impact, effort, and regression risk.
+- Use `crew-manager` when specialist subagent support is required.
 - Return one recommended remediation path plus viable fallback options.
-- Explicitly separate confirmed root cause from plausible alternatives.
-- Keep output implementation-ready and scoped to the observed failure.
