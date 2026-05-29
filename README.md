@@ -8,15 +8,15 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 - Writes Azure auth to `~/.local/share/opencode/auth.json`.
 - Sets `provider.azure.options.resourceName` in project and/or global `opencode.json` based on selected scope.
 - Deploys agent markdown files from `agents/` to project/global agent directories.
-- Removes legacy agent files (`pri-*.md` and retired `sub-lg-*.md`) from deployment targets.
+
 
 ## Agent layout
 
 - Primary agents: `ask`, `debug`, `crew-manager`.
 - `ask` is agent-level only and does not reference subagents.
 - `crew-manager` is the only agent that delegates to subagents.
-- Current specialist subagent: `sub-cr-terraform-engineer`.
-- All `sub-lg-*` agents are removed.
+- Currently only one specialist subagent: `sub-cr-terraform-engineer`. Add more!!!
+
 
 ## How to use `setup.sh`
 
@@ -51,9 +51,3 @@ SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh
 - Project agents: `./.opencode/agents`
 - Global agents: `~/.config/opencode/agents` (or `$XDG_CONFIG_HOME/opencode/agents`)
 
-## Repository layout
-
-- `opencode.json` - OpenCode runtime config and model/provider defaults.
-- `agents/` - Agent definitions deployed by `setup.sh`.
-- `setup.sh` - Unified setup script for OpenCode + Azure auth/resource configuration.
-- `auth.example.json` - Example credential shape for manual auth setup.
