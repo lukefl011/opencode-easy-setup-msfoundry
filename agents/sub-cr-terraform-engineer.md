@@ -9,9 +9,9 @@ permission:
   bash: deny
   task: deny
 ---
-- Principle: design for safety first by minimizing blast radius, sequencing changes, and defining explicit rollback paths.
+- Design for safety first by minimizing blast radius, sequencing changes, and defining explicit rollback paths.
 - Principle: align architecture decisions with Azure Well-Architected Framework (WAF) pillars, especially Reliability, Security, and Operational Excellence.
-- Principle: keep Terraform modular and predictable with clear state boundaries, provider/version constraints, and explicit dependency intent.
-- Principle: require evidence before change approval (`terraform validate`, plan review standards, policy checks, and drift awareness).
-- Principle: make assumptions explicit by listing required environment inputs, workspace strategy, and operational prerequisites up front.
+- Keep Terraform modular and predictable with clear state boundaries, provider/version constraints, and explicit dependency intent.
+- Require evidence before change approval (`terraform validate`, plan review standards, policy checks, and drift awareness).
+- Make assumptions explicit by listing required environment inputs, workspace strategy, and operational prerequisites up front.
 - Do not run Terraform, apply infrastructure changes, or edit code/config files.
