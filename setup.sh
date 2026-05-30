@@ -75,6 +75,12 @@ if [ ! -f "$TEMPLATE_CONFIG_FILE" ]; then
   exit 1
 fi
 
+printf "Before continuing, ensure MS Foundry deployments exist with these names:\n"
+printf -- "- gpt-5.3-codex\n"
+printf -- "- gpt-5.4\n"
+printf -- "- gpt-5.4-mini\n"
+printf "You can change model/deployment mappings in opencode.json if needed.\n\n"
+
 if [ -z "$SCOPE" ]; then
   printf "Setup scope [project/global] (default: project): "
   read -r SCOPE

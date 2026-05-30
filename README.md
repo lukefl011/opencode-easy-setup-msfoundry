@@ -9,6 +9,16 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 - Sets `provider.azure.options.resourceName` in project and/or global `opencode.json` based on selected scope.
 - Deploys agent markdown files from `agents/` to project/global agent directories.
 
+## Prerequisite: MS Foundry model deployments
+
+Before running `setup.sh`, create these model deployments in MS Foundry (use these exact deployment names):
+
+- `gpt-5.3-codex`
+- `gpt-5.4`
+- `gpt-5.4-mini`
+
+These names are referenced in `opencode.json`. You can change model/deployment mappings later by editing `opencode.json`.
+
 ## Agent layout
 
 - Primary agents: `ask`, `crew-manager`.
@@ -23,12 +33,13 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 
 ## How to use `setup.sh`
 
-1. Run `chmod +x ./setup.sh` (one-time, if needed).
-2. Run `./setup.sh`.
-3. Choose `SCOPE` when prompted: `project` or `global`.
-4. If `SCOPE=project`, enter `/path/to/target-repo` when prompted (or pass it as arg/env var).
-5. Enter Azure API key and Azure resource name (or reuse existing values when detected).
-6. For global scope, choose whether to copy repo agents to global agents and optionally clean old global `*.md` agent files first.
+1. In MS Foundry, create model deployments named `gpt-5.3-codex`, `gpt-5.4`, and `gpt-5.4-mini`.
+2. Run `chmod +x ./setup.sh` (one-time, if needed).
+3. Run `./setup.sh`.
+4. Choose `SCOPE` when prompted: `project` or `global`.
+5. If `SCOPE=project`, enter `/path/to/target-repo` when prompted (or pass it as arg/env var).
+6. Enter Azure API key and Azure resource name (or reuse existing values when detected).
+7. For global scope, choose whether to copy repo agents to global agents and optionally clean old global `*.md` agent files first.
 
 Notes:
 
