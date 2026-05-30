@@ -8,73 +8,25 @@ TEMPLATE_CONFIG_FILE="$SOURCE_DIR/opencode.json"
 GLOBAL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
 AGENTS_SOURCE_DIR="$SOURCE_DIR/agents"
-TARGET_REPO_INPUT="${1:-}"
+TARGET_REPO_INPUT="${1:-${TARGET_REPO_PATH:-}}"
 TARGET_REPO=""
 PROJECT_CONFIG_FILE=""
 PROJECT_AGENTS_DIR=""
 GLOBAL_AGENTS_DIR="$GLOBAL_CONFIG_DIR/agents"
-LEGACY_AGENT_FILES=(
-  "pri-ask.md"
-  "pri-plan.md"
-  "pri-build.md"
-  "sub-lg-repo-search.md"
-  "sub-lg-web-search.md"
-  "sub-lg-task-recon.md"
-  "sub-lg-task-lister.md"
-  "sub-lg-dependency-mapper.md"
-  "sub-lg-crew-manager.md"
-  "sub-lg-validation-planner.md"
-  "sub-lg-plan-state-writer.md"
-  "sub-lg-plan-reviewer.md"
-  "sub-lg-builder.md"
-  "sub-lg-qa.md"
-  "sub-lg-release.md"
-  "sub-lg-analysis.md"
-  "sub-lg-ranking-fixes.md"
-)
 CONFIG_FILES=()
 AGENT_TARGET_DIRS=()
 
 usage() {
-  printf "Usage: %s <target-repo-path>\n" "$(basename "$0")"
-  printf "Example: %s ~/code/my-app\n" "$(basename "$0")"
+  printf "Usage: %s [target-repo-path]\n" "$(basename "$0")"
+  printf "Project example: %s ~/code/my-app\n" "$(basename "$0")"
+  printf "Global example: %s\n" "$(basename "$0")"
+  printf "Target path is required only when scope is 'project'.\n"
 }
 
 if [ "$TARGET_REPO_INPUT" = "-h" ] || [ "$TARGET_REPO_INPUT" = "--help" ]; then
   usage
   exit 0
 fi
-
-if [ -z "$TARGET_REPO_INPUT" ]; then
-  printf "Error: target repository path is required.\n" >&2
-  usage >&2
-  exit 1
-fi
-
-if [ ! -d "$TARGET_REPO_INPUT" ]; then
-  printf "Error: target repository path does not exist or is not a directory: %s\n" "$TARGET_REPO_INPUT" >&2
-  exit 1
-fi
-
-TARGET_REPO="$(cd "$TARGET_REPO_INPUT" && pwd)"
-
-if [ "$TARGET_REPO" = "$SOURCE_DIR" ]; then
-  printf "Error: target repository must be different from setup project directory (%s).\n" "$SOURCE_DIR" >&2
-  exit 1
-fi
-
-if ! command -v git >/dev/null 2>&1; then
-  printf "Error: git is required to validate target repository path.\n" >&2
-  exit 1
-fi
-
-if ! git -C "$TARGET_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  printf "Error: target path is not a git repository: %s\n" "$TARGET_REPO" >&2
-  exit 1
-fi
-
-PROJECT_CONFIG_FILE="$TARGET_REPO/opencode.json"
-PROJECT_AGENTS_DIR="$TARGET_REPO/.opencode/agents"
 
 ensure_opencode() {
   if command -v opencode >/dev/null 2>&1; then
@@ -124,7 +76,7 @@ if [ ! -f "$TEMPLATE_CONFIG_FILE" ]; then
 fi
 
 if [ -z "$SCOPE" ]; then
-  printf "Setup scope [project/global/both] (default: project): "
+  printf "Setup scope [project/global] (default: project): "
   read -r SCOPE
 fi
 
@@ -132,6 +84,40 @@ SCOPE="${SCOPE:-project}"
 
 case "$SCOPE" in
   project)
+    if [ -z "$TARGET_REPO_INPUT" ]; then
+      printf "Target repository path: "
+      read -r TARGET_REPO_INPUT
+    fi
+
+    if [ -z "$TARGET_REPO_INPUT" ]; then
+      printf "Error: target repository path is required when SCOPE=project.\n" >&2
+      exit 1
+    fi
+
+    if [ ! -d "$TARGET_REPO_INPUT" ]; then
+      printf "Error: target repository path does not exist or is not a directory: %s\n" "$TARGET_REPO_INPUT" >&2
+      exit 1
+    fi
+
+    TARGET_REPO="$(cd "$TARGET_REPO_INPUT" && pwd)"
+
+    if [ "$TARGET_REPO" = "$SOURCE_DIR" ]; then
+      printf "Error: target repository must be different from setup project directory (%s).\n" "$SOURCE_DIR" >&2
+      exit 1
+    fi
+
+    if ! command -v git >/dev/null 2>&1; then
+      printf "Error: git is required to validate target repository path.\n" >&2
+      exit 1
+    fi
+
+    if ! git -C "$TARGET_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      printf "Error: target path is not a git repository: %s\n" "$TARGET_REPO" >&2
+      exit 1
+    fi
+
+    PROJECT_CONFIG_FILE="$TARGET_REPO/opencode.json"
+    PROJECT_AGENTS_DIR="$TARGET_REPO/.opencode/agents"
     CONFIG_FILES=("$PROJECT_CONFIG_FILE")
     DEPLOY_PROJECT_AGENTS=1
     ;;
@@ -141,15 +127,8 @@ case "$SCOPE" in
     CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
     DEPLOY_GLOBAL_AGENTS=1
     ;;
-  both)
-    mkdir -p "$GLOBAL_CONFIG_DIR"
-    cp "$TEMPLATE_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
-    CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
-    DEPLOY_PROJECT_AGENTS=1
-    DEPLOY_GLOBAL_AGENTS=1
-    ;;
   *)
-    printf "Error: SCOPE must be 'project', 'global', or 'both'.\n" >&2
+    printf "Error: SCOPE must be 'project' or 'global'.\n" >&2
     exit 1
     ;;
 esac
@@ -380,11 +359,6 @@ if [ "$HAS_AGENT_TARGETS" -eq 1 ]; then
     fi
 
     mkdir -p "$target_dir"
-    for legacy_file in "${LEGACY_AGENT_FILES[@]}"; do
-      if [ -f "$target_dir/$legacy_file" ]; then
-        rm -f "$target_dir/$legacy_file"
-      fi
-    done
     for src in "${AGENT_FILES[@]}"; do
       cp "$src" "$target_dir/$(basename "$src")"
     done

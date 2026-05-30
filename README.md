@@ -26,26 +26,32 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 ## How to use `setup.sh`
 
 1. Run `chmod +x ./setup.sh` (one-time, if needed).
-2. Run `./setup.sh /path/to/target-repo`.
-3. Choose `SCOPE` when prompted: `project`, `global`, or `both`.
-4. Enter Azure API key and Azure resource name (or reuse existing values when detected).
-5. For global scope, choose whether to copy repo agents to global agents and optionally clean old global `*.md` agent files first.
+2. Run `./setup.sh`.
+3. Choose `SCOPE` when prompted: `project` or `global`.
+4. If `SCOPE=project`, enter `/path/to/target-repo` when prompted (or pass it as arg/env var).
+5. Enter Azure API key and Azure resource name (or reuse existing values when detected).
+6. For global scope, choose whether to copy repo agents to global agents and optionally clean old global `*.md` agent files first.
 
 Notes:
 
-- `setup.sh` requires a target repository path and will fail if omitted.
-- The target path must be a git repository and cannot be this setup repository itself.
+- `target-repo-path` is required only for `SCOPE=project`; global setup does not need it.
+- You can pass target repository path as arg (`./setup.sh /path/to/target-repo`) or with `TARGET_REPO_PATH`.
+- For project scope, target path must be a git repository and cannot be this setup repository itself.
 
 Non-interactive example:
 
 ```bash
-SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh ~/code/my-app
+SCOPE=project API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh ~/code/my-app
+
+# or
+SCOPE=project TARGET_REPO_PATH=~/code/my-app API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh
 ```
 
 ## Settings used by `setup.sh`
 
-- Positional arg 1: target repository path where project-scoped files are deployed.
-- `SCOPE`: `project`, `global`, or `both`.
+- Positional arg 1 (optional): target repository path used when `SCOPE=project`.
+- `TARGET_REPO_PATH`: optional alternative source for project target repository path.
+- `SCOPE`: `project` or `global`.
 - `API_KEY`: Azure API key to store in auth file.
 - `RESOURCE_NAME`: Azure resource name used in `provider.azure.options.resourceName`.
 - `SECRET_VALUE`: fallback source for `RESOURCE_NAME` when `RESOURCE_NAME` is not set.
