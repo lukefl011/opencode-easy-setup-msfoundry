@@ -10,6 +10,7 @@ permission:
   task:
     "*": deny
     sub-cr-terraform-engineer: allow
+    sub-cr-mobile-app-developer: allow
 ---
 - Act as the only agent responsible for subagent delegation.
 - Select subagents by task fit, risk profile, and required domain depth.

@@ -12,28 +12,39 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 
 ## Agent layout
 
-- Primary agents: `ask`, `debug`, `crew-manager`.
+- Primary agents: `ask`, `crew-manager`.
 - `ask` is agent-level only and does not reference subagents.
 - `crew-manager` is the only agent that delegates to subagents.
-- Currently only one specialist subagent: `sub-cr-terraform-engineer`. Add more!!!
+- Specialist subagents: `sub-cr-terraform-engineer`, `sub-cr-mobile-app-developer`.
+
+### When to use specialist subagents
+
+- Use `sub-cr-terraform-engineer` for Terraform/IaC planning, risk controls, validation criteria, and rollout sequencing.
+- Use `sub-cr-mobile-app-developer` for mobile app architecture, open-source stack choices, UI/UX quality principles, and delivery/testing plans.
 
 
 ## How to use `setup.sh`
 
 1. Run `chmod +x ./setup.sh` (one-time, if needed).
-2. Run `./setup.sh`.
+2. Run `./setup.sh /path/to/target-repo`.
 3. Choose `SCOPE` when prompted: `project`, `global`, or `both`.
 4. Enter Azure API key and Azure resource name (or reuse existing values when detected).
 5. For global scope, choose whether to copy repo agents to global agents and optionally clean old global `*.md` agent files first.
 
+Notes:
+
+- `setup.sh` requires a target repository path and will fail if omitted.
+- The target path must be a git repository and cannot be this setup repository itself.
+
 Non-interactive example:
 
 ```bash
-SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh
+SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh ~/code/my-app
 ```
 
 ## Settings used by `setup.sh`
 
+- Positional arg 1: target repository path where project-scoped files are deployed.
 - `SCOPE`: `project`, `global`, or `both`.
 - `API_KEY`: Azure API key to store in auth file.
 - `RESOURCE_NAME`: Azure resource name used in `provider.azure.options.resourceName`.
@@ -46,8 +57,7 @@ SCOPE=both API_KEY=your_key RESOURCE_NAME=your_resource_name ./setup.sh
 ## Files affected
 
 - Auth: `~/.local/share/opencode/auth.json`
-- Project config: `./opencode.json`
+- Project config: `<target-repo>/opencode.json`
 - Global config: `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json`)
-- Project agents: `./.opencode/agents`
+- Project agents: `<target-repo>/.opencode/agents`
 - Global agents: `~/.config/opencode/agents` (or `$XDG_CONFIG_HOME/opencode/agents`)
-

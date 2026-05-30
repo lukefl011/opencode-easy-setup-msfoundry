@@ -3,18 +3,20 @@ set -euo pipefail
 
 AUTH_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/opencode"
 AUTH_FILE="$AUTH_DIR/auth.json"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_CONFIG_FILE="$SCRIPT_DIR/opencode.json"
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_CONFIG_FILE="$SOURCE_DIR/opencode.json"
 GLOBAL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 GLOBAL_CONFIG_FILE="$GLOBAL_CONFIG_DIR/opencode.json"
-AGENTS_SOURCE_DIR="$SCRIPT_DIR/agents"
-PROJECT_AGENTS_DIR="$SCRIPT_DIR/.opencode/agents"
+AGENTS_SOURCE_DIR="$SOURCE_DIR/agents"
+TARGET_REPO_INPUT="${1:-}"
+TARGET_REPO=""
+PROJECT_CONFIG_FILE=""
+PROJECT_AGENTS_DIR=""
 GLOBAL_AGENTS_DIR="$GLOBAL_CONFIG_DIR/agents"
 LEGACY_AGENT_FILES=(
   "pri-ask.md"
   "pri-plan.md"
   "pri-build.md"
-  "pri-debug.md"
   "sub-lg-repo-search.md"
   "sub-lg-web-search.md"
   "sub-lg-task-recon.md"
@@ -29,10 +31,50 @@ LEGACY_AGENT_FILES=(
   "sub-lg-release.md"
   "sub-lg-analysis.md"
   "sub-lg-ranking-fixes.md"
-  "sub-lg-debugger.md"
 )
 CONFIG_FILES=()
 AGENT_TARGET_DIRS=()
+
+usage() {
+  printf "Usage: %s <target-repo-path>\n" "$(basename "$0")"
+  printf "Example: %s ~/code/my-app\n" "$(basename "$0")"
+}
+
+if [ "$TARGET_REPO_INPUT" = "-h" ] || [ "$TARGET_REPO_INPUT" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+if [ -z "$TARGET_REPO_INPUT" ]; then
+  printf "Error: target repository path is required.\n" >&2
+  usage >&2
+  exit 1
+fi
+
+if [ ! -d "$TARGET_REPO_INPUT" ]; then
+  printf "Error: target repository path does not exist or is not a directory: %s\n" "$TARGET_REPO_INPUT" >&2
+  exit 1
+fi
+
+TARGET_REPO="$(cd "$TARGET_REPO_INPUT" && pwd)"
+
+if [ "$TARGET_REPO" = "$SOURCE_DIR" ]; then
+  printf "Error: target repository must be different from setup project directory (%s).\n" "$SOURCE_DIR" >&2
+  exit 1
+fi
+
+if ! command -v git >/dev/null 2>&1; then
+  printf "Error: git is required to validate target repository path.\n" >&2
+  exit 1
+fi
+
+if ! git -C "$TARGET_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  printf "Error: target path is not a git repository: %s\n" "$TARGET_REPO" >&2
+  exit 1
+fi
+
+PROJECT_CONFIG_FILE="$TARGET_REPO/opencode.json"
+PROJECT_AGENTS_DIR="$TARGET_REPO/.opencode/agents"
 
 ensure_opencode() {
   if command -v opencode >/dev/null 2>&1; then
@@ -76,6 +118,11 @@ DEPLOY_GLOBAL_AGENTS=0
 
 ensure_opencode
 
+if [ ! -f "$TEMPLATE_CONFIG_FILE" ]; then
+  printf "Error: template opencode.json not found at %s\n" "$TEMPLATE_CONFIG_FILE" >&2
+  exit 1
+fi
+
 if [ -z "$SCOPE" ]; then
   printf "Setup scope [project/global/both] (default: project): "
   read -r SCOPE
@@ -90,13 +137,13 @@ case "$SCOPE" in
     ;;
   global)
     mkdir -p "$GLOBAL_CONFIG_DIR"
-    cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
+    cp "$TEMPLATE_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$GLOBAL_CONFIG_FILE")
     DEPLOY_GLOBAL_AGENTS=1
     ;;
   both)
     mkdir -p "$GLOBAL_CONFIG_DIR"
-    cp "$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
+    cp "$TEMPLATE_CONFIG_FILE" "$GLOBAL_CONFIG_FILE"
     CONFIG_FILES=("$PROJECT_CONFIG_FILE" "$GLOBAL_CONFIG_FILE")
     DEPLOY_PROJECT_AGENTS=1
     DEPLOY_GLOBAL_AGENTS=1
@@ -127,11 +174,14 @@ if [ "$DEPLOY_GLOBAL_AGENTS" -eq 1 ]; then
 fi
 
 AGENT_TARGET_DIRS=()
+HAS_AGENT_TARGETS=0
 if [ "$DEPLOY_PROJECT_AGENTS" -eq 1 ]; then
   AGENT_TARGET_DIRS+=("$PROJECT_AGENTS_DIR")
+  HAS_AGENT_TARGETS=1
 fi
 if [ "$DEPLOY_GLOBAL_AGENTS" -eq 1 ]; then
   AGENT_TARGET_DIRS+=("$GLOBAL_AGENTS_DIR")
+  HAS_AGENT_TARGETS=1
 fi
 
 EXISTING_API_KEY=""
@@ -231,13 +281,17 @@ fi
 
 for cfg in "${CONFIG_FILES[@]}"; do
   if [ ! -f "$cfg" ]; then
-    printf "Error: opencode.json not found at %s\n" "$cfg" >&2
-    exit 1
+    if [ "$cfg" = "$PROJECT_CONFIG_FILE" ]; then
+      cp "$TEMPLATE_CONFIG_FILE" "$PROJECT_CONFIG_FILE"
+    else
+      printf "Error: opencode.json not found at %s\n" "$cfg" >&2
+      exit 1
+    fi
   fi
 done
 
 AGENT_FILES=()
-if [ "${#AGENT_TARGET_DIRS[@]}" -gt 0 ]; then
+if [ "$HAS_AGENT_TARGETS" -eq 1 ]; then
   if [ ! -d "$AGENTS_SOURCE_DIR" ]; then
     printf "Error: agents source folder not found at %s\n" "$AGENTS_SOURCE_DIR" >&2
     exit 1
@@ -298,48 +352,50 @@ config_file.write_text(json.dumps(data, indent=2) + "\n")
 PY
 done
 
-for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
-  if [ "$target_dir" = "$GLOBAL_AGENTS_DIR" ]; then
-    if [ -z "$CLEAN_GLOBAL_AGENTS" ]; then
-      printf "Clean existing global agent markdown files before deployment? [y/N]: "
-      read -r CLEAN_GLOBAL_AGENTS
-    fi
-    case "${CLEAN_GLOBAL_AGENTS:-N}" in
-      y|Y|yes|YES)
-        if [ -d "$target_dir" ]; then
-          shopt -s nullglob
-          GLOBAL_AGENT_FILES=("$target_dir"/*.md)
-          if [ "${#GLOBAL_AGENT_FILES[@]}" -gt 0 ]; then
-            rm -f "${GLOBAL_AGENT_FILES[@]}"
+if [ "$HAS_AGENT_TARGETS" -eq 1 ]; then
+  for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
+    if [ "$target_dir" = "$GLOBAL_AGENTS_DIR" ]; then
+      if [ -z "$CLEAN_GLOBAL_AGENTS" ]; then
+        printf "Clean existing global agent markdown files before deployment? [y/N]: "
+        read -r CLEAN_GLOBAL_AGENTS
+      fi
+      case "${CLEAN_GLOBAL_AGENTS:-N}" in
+        y|Y|yes|YES)
+          if [ -d "$target_dir" ]; then
+            shopt -s nullglob
+            GLOBAL_AGENT_FILES=("$target_dir"/*.md)
+            if [ "${#GLOBAL_AGENT_FILES[@]}" -gt 0 ]; then
+              rm -f "${GLOBAL_AGENT_FILES[@]}"
+            fi
+            shopt -u nullglob
           fi
-          shopt -u nullglob
-        fi
-        ;;
-      n|N|no|NO|"")
-        ;;
-      *)
-        printf "Error: CLEAN_GLOBAL_AGENTS must be y/yes or n/no.\n" >&2
-        exit 1
-        ;;
-    esac
-  fi
-
-  mkdir -p "$target_dir"
-  for legacy_file in "${LEGACY_AGENT_FILES[@]}"; do
-    if [ -f "$target_dir/$legacy_file" ]; then
-      rm -f "$target_dir/$legacy_file"
+          ;;
+        n|N|no|NO|"")
+          ;;
+        *)
+          printf "Error: CLEAN_GLOBAL_AGENTS must be y/yes or n/no.\n" >&2
+          exit 1
+          ;;
+      esac
     fi
+
+    mkdir -p "$target_dir"
+    for legacy_file in "${LEGACY_AGENT_FILES[@]}"; do
+      if [ -f "$target_dir/$legacy_file" ]; then
+        rm -f "$target_dir/$legacy_file"
+      fi
+    done
+    for src in "${AGENT_FILES[@]}"; do
+      cp "$src" "$target_dir/$(basename "$src")"
+    done
   done
-  for src in "${AGENT_FILES[@]}"; do
-    cp "$src" "$target_dir/$(basename "$src")"
-  done
-done
+fi
 
 printf "Saved Azure auth to %s and updated Azure provider settings in:\n" "$AUTH_FILE"
 for cfg in "${CONFIG_FILES[@]}"; do
   printf -- "- %s\n" "$cfg"
 done
-if [ "${#AGENT_TARGET_DIRS[@]}" -gt 0 ]; then
+if [ "$HAS_AGENT_TARGETS" -eq 1 ]; then
   printf "Deployed %s agent files to:\n" "${#AGENT_FILES[@]}"
   for target_dir in "${AGENT_TARGET_DIRS[@]}"; do
     printf -- "- %s\n" "$target_dir"
