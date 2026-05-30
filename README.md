@@ -9,7 +9,6 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 - Sets `provider.azure.options.resourceName` in project and/or global `opencode.json` based on selected scope.
 - Deploys agent markdown files from `agents/` to project/global agent directories.
 
-
 ## Agent layout
 
 - Primary agents: `ask`, `crew-manager`.
@@ -21,7 +20,6 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 
 - Use `sub-cr-terraform-engineer` for Terraform/IaC planning, risk controls, validation criteria, and rollout sequencing.
 - Use `sub-cr-mobile-app-developer` for mobile app architecture, open-source stack choices, UI/UX quality principles, and delivery/testing plans.
-
 
 ## How to use `setup.sh`
 

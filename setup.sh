@@ -209,6 +209,7 @@ fi
 
 if [ -z "$RESOURCE_NAME" ]; then
   EXISTING_RESOURCE_NAME=""
+  EXISTING_RESOURCE_NAME_SOURCE=""
   for cfg in "${CONFIG_FILES[@]}"; do
     CURRENT_RESOURCE_NAME="$(OPENCODE_CONFIG_FILE="$cfg" python3 - <<'PY'
 import json
@@ -225,13 +226,38 @@ PY
 )"
     if [ -n "$CURRENT_RESOURCE_NAME" ]; then
       EXISTING_RESOURCE_NAME="$CURRENT_RESOURCE_NAME"
+      EXISTING_RESOURCE_NAME_SOURCE="$cfg"
       break
     fi
   done
 
+  if [ -z "$EXISTING_RESOURCE_NAME" ] && [ "$SCOPE" = "project" ]; then
+    CURRENT_RESOURCE_NAME="$(OPENCODE_CONFIG_FILE="$GLOBAL_CONFIG_FILE" python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+config_file = Path(os.environ["OPENCODE_CONFIG_FILE"])
+try:
+    data = json.loads(config_file.read_text())
+except Exception:
+    data = {}
+print(data.get("provider", {}).get("azure", {}).get("options", {}).get("resourceName", ""))
+PY
+)"
+    if [ -n "$CURRENT_RESOURCE_NAME" ]; then
+      EXISTING_RESOURCE_NAME="$CURRENT_RESOURCE_NAME"
+      EXISTING_RESOURCE_NAME_SOURCE="$GLOBAL_CONFIG_FILE"
+    fi
+  fi
+
   if [ -n "$EXISTING_RESOURCE_NAME" ]; then
     if [ -z "$USE_EXISTING_RESOURCE_NAME" ]; then
-      printf "Existing AZURE_RESOURCE_NAME found (%s). Reuse it? [Y/n]: " "$EXISTING_RESOURCE_NAME"
+      if [ "$EXISTING_RESOURCE_NAME_SOURCE" = "$GLOBAL_CONFIG_FILE" ]; then
+        printf "Existing AZURE_RESOURCE_NAME found in global config (%s). Reuse it? [Y/n]: " "$EXISTING_RESOURCE_NAME"
+      else
+        printf "Existing AZURE_RESOURCE_NAME found (%s). Reuse it? [Y/n]: " "$EXISTING_RESOURCE_NAME"
+      fi
       read -r USE_EXISTING_RESOURCE_NAME
     fi
     case "${USE_EXISTING_RESOURCE_NAME:-Y}" in
