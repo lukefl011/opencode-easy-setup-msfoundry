@@ -1,4 +1,4 @@
-# OpenCode Initial Setup
+# OpenCode Linux/macOS Easy Setup with MS Foundry
 
 This repository provides a starter setup for OpenCode with MS Foundry, including a preconfigured opencode.json, curated agent definitions, and a setup.sh script to install and configure OpenCode on Linux and macOS.
 
