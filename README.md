@@ -4,7 +4,7 @@ This repository provides a starter setup for OpenCode with MS Foundry, including
 
 ## What this setup does
 
-- Installs OpenCode if missing (`brew`, `npm`, `bun`, `pnpm`, then `yarn`).
+- Installs OpenCode if missing ('https://opencode.ai/download'). 
 - Writes Azure auth to `~/.local/share/opencode/auth.json`.
 - Sets `provider.azure.options.resourceName` in project and/or global `opencode.json` based on selected scope.
 - Deploys agent markdown files from `agents/` to project/global agent directories.
