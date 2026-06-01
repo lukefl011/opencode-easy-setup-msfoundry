@@ -21,7 +21,7 @@ These names are referenced in `opencode.json`. You can change model/deployment m
 
 ## Agent layout
 
-- Primary agents: `ask`, `crew-manager`.
+- Custom Primary agents: `ask`, `crew-manager`.
 - `ask` is agent-level only and does not reference subagents.
 - `crew-manager` is the only agent that delegates to subagents.
 - Specialist subagents: `sub-cr-terraform-engineer`, `sub-cr-mobile-app-developer`.
